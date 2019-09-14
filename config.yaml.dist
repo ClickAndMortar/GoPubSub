@@ -1,0 +1,8 @@
+project: test
+topics:
+  -
+    name: my-topic
+    subscription: my-subscription
+  -
+    name: my-other-topic
+    subscription: my-other-subscription
