@@ -2,6 +2,8 @@
 
 This tool eases debugging Google Clouds Pub/Sub with a simple UI.
 
+![Screenshot](https://raw.githubusercontent.com/ClickAndMortar/GoPubSub/master/gopubsub.png)
+
 ## Configuration
 
 Define the topics and associated subscriptions in `config.yaml`:
@@ -41,10 +43,10 @@ PUBSUB_EMULATOR_HOST=localhost:8085 go run main.go
 
 ## Improvements
 
-[ ] JSON pretty-printing
-[ ] Live update
-[ ] Working message publication
-[ ] Samples for message publication
+* [ ] JSON pretty-printing
+* [ ] Live update
+* [ ] Working message publication
+* [ ] Samples for message publication
 
 ## Credits
 
