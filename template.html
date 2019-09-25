@@ -17,10 +17,10 @@
             <h4>Topics</h4>
             <ul class="collection with-header">
             {{ range $key, $value := .Messages }}
-                <li class="collection-header"><h4>{{ $key }}</h4></li>
+                <li class="collection-header"><h5>{{ $key }}</h5></li>
             {{ range $value }}
                 <li class="collection-item">
-                    <span style="font-size: 10px; color: #333333;">{{ .PublishTime.String }} ({{ .ID }})</span>
+                    <span style="font-size: 10px; color: #333333;">{{ .PublishTime.String }} (ID {{ .ID }})</span>
                     <pre>
                         <code class="language-json">
                         {{ .Data | printf "%s" }}
