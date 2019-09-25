@@ -6,3 +6,14 @@ topics:
   -
     name: my-other-topic
     subscription: my-other-subscription
+    payloads:
+      -
+        name: hello
+        payload: |
+          {"hello": "world"}
+      -
+        name: hello-again
+        payload: |
+          {"hello": "world again"}
+  -
+    name: my-last-topic

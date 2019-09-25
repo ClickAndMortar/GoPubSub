@@ -17,9 +17,20 @@ topics:
   -
     name: my-other-topic
     subscription: my-other-subscription
+    payloads:
+      -
+        name: hello
+        payload: |
+          {"hello": "world"}
+      -
+        name: hello-again
+        payload: |
+          {"hello": "world again"}
+  -
+    name: my-last-topic
 ```
 
-Note that all non-existant topic or subscription will be created.
+Note that all non-existant topic or subscription will be created. If no subscription is given for a topic, it will be created as `sub-<topic-name>`.
 
 ## Usage
 
@@ -43,10 +54,10 @@ PUBSUB_EMULATOR_HOST=localhost:8085 go run main.go
 
 ## Improvements
 
-* [ ] JSON pretty-printing
+* [x] JSON pretty-printing
 * [ ] Live update
-* [ ] Working message publication
-* [ ] Samples for message publication
+* [x] Working message publication
+* [x] Samples for message publication
 
 ## Credits
 

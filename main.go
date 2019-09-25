@@ -16,8 +16,7 @@ import (
 )
 
 var (
-	topic        *pubsub.Topic
-	subscription *pubsub.Subscription
+	client *pubsub.Client
 
 	// Messages received by this instance.
 	messagesMu sync.Mutex
@@ -41,6 +40,10 @@ type Config struct {
 	Topics []struct {
 		Name         string
 		Subscription string
+		Payloads     []struct {
+			Name    string
+			Payload string
+		}
 	}
 }
 
@@ -48,8 +51,6 @@ type Page struct {
 	Config   Config
 	Messages map[string][]string
 }
-
-const maxMessages = 10
 
 func main() {
 	page = Page{}
@@ -67,7 +68,7 @@ func main() {
 
 	ctx := context.Background()
 
-	client, err := pubsub.NewClient(ctx, config.Project)
+	client, err = pubsub.NewClient(ctx, config.Project)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,6 +97,10 @@ func main() {
 		}
 
 		subscriptionName = topicConfig.Subscription
+		if subscriptionName == "" {
+			subscriptionName = fmt.Sprintf("sub-%s", topicName)
+			log.Printf("No subscription name given for topic %s, using %s", topicName, subscriptionName)
+		}
 		subscriptions[subscriptionName] = client.Subscription(subscriptionName)
 		subExists, err := subscriptions[subscriptionName].Exists(ctx)
 		if err != nil {
@@ -116,7 +121,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", listHandler)
-	http.HandleFunc("/pubsub/publish", publishHandler)
+	http.HandleFunc("/publish", publishHandler)
 	http.HandleFunc("/pubsub/push", pushHandler)
 
 	port := os.Getenv("GOPUBSUB_PORT")
@@ -125,7 +130,7 @@ func main() {
 		log.Printf("Defaulting to port %s", port)
 	}
 
-	log.Printf("Listening on port %s", port)
+	log.Printf("Listening on http://127.0.0.1:%s", port)
 	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 }
 
@@ -146,14 +151,6 @@ func pullMessages(ctx context.Context, subscription *pubsub.Subscription, topic 
 	if err != nil {
 		fmt.Printf("Receive: %v", err)
 	}
-}
-
-func mustGetenv(k string) string {
-	v := os.Getenv(k)
-	if v == "" {
-		log.Fatalf("%s environment variable not set.", k)
-	}
-	return v
 }
 
 type pushRequest struct {
@@ -201,7 +198,8 @@ func publishHandler(w http.ResponseWriter, r *http.Request) {
 		Data: []byte(r.FormValue("payload")),
 	}
 
-	if _, err := topic.Publish(ctx, msg).Get(ctx); err != nil {
+	publishTopic := client.Topic(r.FormValue("topic"))
+	if _, err := publishTopic.Publish(ctx, msg).Get(ctx); err != nil {
 		http.Error(w, fmt.Sprintf("Could not publish message: %v", err), 500)
 		return
 	}
