@@ -2,6 +2,13 @@
 
 This tool eases debugging Google Clouds Pub/Sub with a simple UI.
 
+Features include:
+
+* Subscription to given topics
+* Automatic creation of non-existent topics or subscriptions
+* Publishing messages from UI to configured topics
+* Configurable pre-defined payloads per topic
+
 ![Screenshot](https://raw.githubusercontent.com/ClickAndMortar/GoPubSub/master/gopubsub.png)
 
 ## Configuration
