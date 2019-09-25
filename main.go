@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/alexandrevicenzi/go-sse"
 	"gopkg.in/yaml.v2"
 	"html/template"
 	"io/ioutil"
@@ -32,6 +33,9 @@ var (
 	subscriptions map[string]*pubsub.Subscription
 
 	maxMessages int
+
+	sseServer *sse.Server
+	sseJson   []byte
 )
 
 type Config struct {
@@ -61,6 +65,9 @@ func main() {
 	page = Page{}
 	config := Config{}
 
+	sseServer = sse.NewServer(nil)
+	defer sseServer.Shutdown()
+
 	maxMessages, _ = strconv.Atoi(getEnvDefault("GOPUBSUB_MAX_MESSAGES", "10"))
 
 	configPath := getEnvDefault("GOPUBSUB_CONFIG", "config.yaml")
@@ -71,8 +78,6 @@ func main() {
 	}
 
 	page.Config = config
-
-	os.Setenv("PUBSUB_VERIFICATION_TOKEN", "abcd123")
 
 	ctx := context.Background()
 
@@ -131,6 +136,10 @@ func main() {
 	http.HandleFunc("/", listHandler)
 	http.HandleFunc("/publish", publishHandler)
 	http.HandleFunc("/messages", messagesHandler)
+	http.Handle("/events/", sseServer)
+
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	port := getEnvDefault("GOPUBSUB_PORT", "8080")
 
@@ -160,6 +169,9 @@ func pullMessages(ctx context.Context, subscription *pubsub.Subscription, topic 
 		if len(messages[topic.ID()]) > maxMessages {
 			messages[topic.ID()] = messages[topic.ID()][:maxMessages]
 		}
+
+		sseJson, _ = json.Marshal(messages)
+		sseServer.SendMessage("/events/messages", sse.SimpleMessage(string(sseJson)))
 	})
 	if err != nil {
 		fmt.Printf("Receive: %v", err)

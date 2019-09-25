@@ -8,6 +8,7 @@ Features include:
 * Automatic creation of non-existent topics or subscriptions
 * Publishing messages from UI to configured topics
 * Configurable pre-defined payloads per topic
+* Live update of received messages
 
 ![Screenshot](https://raw.githubusercontent.com/ClickAndMortar/GoPubSub/master/gopubsub.png)
 
@@ -79,8 +80,10 @@ Linux and macOS (Darwin) binaries will be available under the `bin/` directory.
 
 ## Improvements
 
+* [ ] Remove initial AJAX call
 * [ ] Output message attributes
-* [ ] Live update
+* [ ] Use Vue.js for form
+* [x] Live update (using SSE)
 * [x] JSON pretty-printing
 * [x] Working message publication
 * [x] Samples for message publication
