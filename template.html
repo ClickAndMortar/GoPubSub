@@ -17,7 +17,7 @@
             <div id="messages-list">
                 <ul v-for="(messages, topic) in topics" class="collection with-header">
                     <li class="collection-header"><h5>{{ "{{ topic }}" }}</h5></li>
-                    <li v-for="message in messages" class="collection-item">
+                    <li v-for="message in messages" class="collection-item" :key="message.ID">
                         <span style="font-size: 10px; color: #333333;">{{ "{{ message.PublishTime }}" }} (ID {{ "{{ message.ID }}" }}):</span>
                         <pre>
                         <code class="language-json">
@@ -26,7 +26,7 @@
                     </pre>
                     </li>
                 </ul>
-                <p v-if="Object.keys(topics).length == 0">No messages yet</p>
+                <p v-if="Object.keys(topics).length == 0">No messages yet 📭</p>
             </div>
         </div>
     </div>
