@@ -130,6 +130,7 @@ func main() {
 
 	http.HandleFunc("/", listHandler)
 	http.HandleFunc("/publish", publishHandler)
+	http.HandleFunc("/messages", messagesHandler)
 
 	port := getEnvDefault("GOPUBSUB_PORT", "8080")
 
@@ -171,6 +172,14 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := tmpl.Execute(w, page); err != nil {
 		log.Printf("Could not execute template: %v", err)
+	}
+}
+
+func messagesHandler(w http.ResponseWriter, r *http.Request) {
+	if strings.ContainsAny(r.Header.Get("Accept"), "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		jsonResponse, _ := json.Marshal(messages)
+		w.Write(jsonResponse)
 	}
 }
 

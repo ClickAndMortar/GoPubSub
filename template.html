@@ -15,21 +15,19 @@
                      alt="Pub/Sub Logo"/>
             </div>
             <h4>Topics</h4>
-            <ul class="collection with-header">
-            {{ range $key, $value := .Messages }}
-                <li class="collection-header"><h5>{{ $key }}</h5></li>
-            {{ range $value }}
-                <li class="collection-item">
-                    <span style="font-size: 10px; color: #333333;">{{ .PublishTime.String }} (ID {{ .ID }})</span>
-                    <pre>
+            <div id="messages-list">
+                <ul v-for="(messages, topic) in topics" class="collection with-header">
+                    <li class="collection-header"><h5>{{ "{{ topic }}" }}</h5></li>
+                    <li v-for="message in messages" class="collection-item">
+                        <span style="font-size: 10px; color: #333333;">{{ "{{ message.PublishTime }}" }} (ID {{ "{{ message.ID }}" }})</span>
+                        <pre>
                         <code class="language-json">
-                        {{ .Data | printf "%s" }}
+                        {{ "{{ atob(message.Data) }}" }}
                         </code>
                     </pre>
-                </li>
-            {{ end }}
-            {{ end }}
-            </ul>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
     <div class="row">
@@ -69,6 +67,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>
 <script>
     Prism.plugins.NormalizeWhitespace.setDefaults({
         'remove-trailing': true,
@@ -135,6 +134,21 @@
                     M.toast({html: 'Error: ' + data.responseText});
                 }
             });
+        });
+
+        new Vue({
+            el: '#messages-list',
+            data() {
+                return {
+                    topics: []
+                }
+            },
+            mounted() {
+                var that = this;
+                $.getJSON('/messages', function (data) {
+                    that.topics = data;
+                });
+            }
         });
     });
 </script>
