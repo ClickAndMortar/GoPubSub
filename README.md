@@ -6,7 +6,17 @@ This tool eases debugging Google Clouds Pub/Sub with a simple UI.
 
 ## Configuration
 
-Define the topics and associated subscriptions in `config.yaml`:
+Following environment variables may be set:
+
+| Variable | Usage | Default value |
+|---|---|---|
+| `GOPUBSUB_CONFIG` | Config file path | `config.yaml` |
+| `GOPUBSUB_PORT` | Listening HTTP port | `8080` |
+| `GOPUBSUB_MAX_MESSAGES` | Only keep last _n_ messages per topic | `10` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to JSON credentials file | _none_ |
+| `PUBSUB_EMULATOR_HOST` | Host of emulator (see below) | _none_ |
+
+### The `config.yaml` file
 
 ```yaml
 project: test
@@ -34,28 +44,37 @@ Note that all non-existant topic or subscription will be created. If no subscrip
 
 ## Usage
 
+Open http://localhost:8080 after running GoPubSub.
+
+### From binary
+
+See releases page.
+
+### With docker-compose
+
+```bash
+docker-compose up -d
+```
+
+### From source
+
 ```bash
 go run main.go
 ```
 
-You may specify listening port with `GOPUBSUB_PORT` environment variable (defaults to `8080`).
+## Build
 
-### With emulator
-
-```
-docker-compose up -d
+```bash
+make
 ```
 
-And run this app:
-
-```
-PUBSUB_EMULATOR_HOST=localhost:8085 go run main.go
-```
+Linux and macOS (Darwin) binaries will be available under the `bin/` directory.
 
 ## Improvements
 
-* [x] JSON pretty-printing
+* [ ] Output message attributes
 * [ ] Live update
+* [x] JSON pretty-printing
 * [x] Working message publication
 * [x] Samples for message publication
 

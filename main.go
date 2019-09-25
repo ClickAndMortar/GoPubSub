@@ -10,6 +10,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 
 	"cloud.google.com/go/pubsub"
@@ -18,12 +20,8 @@ import (
 var (
 	client *pubsub.Client
 
-	// Messages received by this instance.
 	messagesMu sync.Mutex
-	messages   map[string][]string
-
-	// token is used to verify push requests.
-	token = "abcd123"
+	messages   map[string][]pubsub.Message
 
 	topicName        string
 	subscriptionName string
@@ -32,6 +30,8 @@ var (
 
 	topics        map[string]*pubsub.Topic
 	subscriptions map[string]*pubsub.Subscription
+
+	maxMessages int
 )
 
 type Config struct {
@@ -49,14 +49,22 @@ type Config struct {
 
 type Page struct {
 	Config   Config
-	Messages map[string][]string
+	Messages map[string][]pubsub.Message
+}
+
+type PublishResponse struct {
+	ID    string `json:"id"`
+	Topic string `json:"topic"`
 }
 
 func main() {
 	page = Page{}
 	config := Config{}
 
-	configData, err := ioutil.ReadFile("config.yaml")
+	maxMessages, _ = strconv.Atoi(getEnvDefault("GOPUBSUB_MAX_MESSAGES", "10"))
+
+	configPath := getEnvDefault("GOPUBSUB_CONFIG", "config.yaml")
+	configData, err := ioutil.ReadFile(configPath)
 	configErr := yaml.Unmarshal([]byte(configData), &config)
 	if configErr != nil {
 		log.Fatal(configErr)
@@ -73,7 +81,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	messages = make(map[string][]string)
+	messages = make(map[string][]pubsub.Message)
 	page.Messages = messages
 
 	topics = make(map[string]*pubsub.Topic)
@@ -122,64 +130,39 @@ func main() {
 
 	http.HandleFunc("/", listHandler)
 	http.HandleFunc("/publish", publishHandler)
-	http.HandleFunc("/pubsub/push", pushHandler)
 
-	port := os.Getenv("GOPUBSUB_PORT")
-	if port == "" {
-		port = "8080"
-		log.Printf("Defaulting to port %s", port)
-	}
+	port := getEnvDefault("GOPUBSUB_PORT", "8080")
 
 	log.Printf("Listening on http://127.0.0.1:%s", port)
 	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 }
 
+func getEnvDefault(name string, defaultValue string) string {
+	variable := os.Getenv(name)
+	if variable == "" && defaultValue != "" {
+		log.Printf("Environment variable %s not set or empty, using default %s", name, defaultValue)
+		variable = defaultValue
+	}
+
+	return variable
+}
+
 func pullMessages(ctx context.Context, subscription *pubsub.Subscription, topic *pubsub.Topic) {
-	received := 0
-	cctx, cancel := context.WithCancel(ctx)
+	cctx, _ := context.WithCancel(ctx)
 	err := subscription.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
 		msg.Ack()
-		fmt.Printf("Got message: %q\n", string(msg.Data))
-		messages[topic.ID()] = append(messages[topic.ID()], string(msg.Data))
+		log.Printf("Topic [%s], subscription [%s], got message: %q\n", topic.ID(), subscription.ID(), string(msg.Data))
+		messages[topic.ID()] = append([]pubsub.Message{*msg}, messages[topic.ID()]...)
+
 		messagesMu.Lock()
 		defer messagesMu.Unlock()
-		received++
-		if received == 10 {
-			cancel()
+		if len(messages[topic.ID()]) > maxMessages {
+			messages[topic.ID()] = messages[topic.ID()][:maxMessages]
 		}
 	})
 	if err != nil {
 		fmt.Printf("Receive: %v", err)
 	}
-}
-
-type pushRequest struct {
-	Message struct {
-		Attributes map[string]string
-		Data       []byte
-		ID         string `json:"message_id"`
-	}
-	Subscription string
-}
-
-func pushHandler(w http.ResponseWriter, r *http.Request) {
-	// Verify the token.
-	if r.URL.Query().Get("token") != token {
-		http.Error(w, "Bad token", http.StatusBadRequest)
-	}
-	msg := &pushRequest{}
-	if err := json.NewDecoder(r.Body).Decode(msg); err != nil {
-		http.Error(w, fmt.Sprintf("Could not decode body: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	messagesMu.Lock()
-	defer messagesMu.Unlock()
-	// Limit to ten.
-	/*messages = append(messages, string(msg.Message.Data))
-	if len(messages) > maxMessages {
-		messages = messages[len(messages)-maxMessages:]
-	}*/
 }
 
 func listHandler(w http.ResponseWriter, r *http.Request) {
@@ -195,16 +178,24 @@ func publishHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	msg := &pubsub.Message{
-		Data: []byte(r.FormValue("payload")),
+		Data: []byte(strings.TrimSpace(r.FormValue("payload"))),
 	}
 
 	publishTopic := client.Topic(r.FormValue("topic"))
-	if _, err := publishTopic.Publish(ctx, msg).Get(ctx); err != nil {
+	serverId, err := publishTopic.Publish(ctx, msg).Get(ctx)
+	if err != nil {
 		http.Error(w, fmt.Sprintf("Could not publish message: %v", err), 500)
 		return
 	}
 
-	fmt.Fprint(w, "Message published.")
+	response := PublishResponse{
+		ID:    serverId,
+		Topic: publishTopic.ID(),
+	}
+
+	jsonResponse, _ := json.Marshal(response)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonResponse)
 }
 
 var tmpl = template.Must(template.ParseFiles("template.html"))

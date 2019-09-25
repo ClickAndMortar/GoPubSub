@@ -1,7 +1,16 @@
-version: '3'
+version: '3.7'
 services:
   pubsub:
     image: google/cloud-sdk:latest
     command: [ "gcloud", "beta", "emulators", "pubsub", "start", "--host-port=0.0.0.0:8085", "--log-http", "--verbosity=debug", "--user-output-enabled" ]
     ports:
     - 8085:8085
+  ui:
+    build: .
+    ports:
+    - 8080:8080
+    volumes:
+    - "./config.yaml:/go/src/app/config.yaml"
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      GOPUBSUB_CONFIG: "/go/src/app/config.yaml"

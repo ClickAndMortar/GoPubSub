@@ -20,9 +20,10 @@
                 <li class="collection-header"><h4>{{ $key }}</h4></li>
             {{ range $value }}
                 <li class="collection-item">
+                    <span style="font-size: 10px; color: #333333;">{{ .PublishTime.String }} ({{ .ID }})</span>
                     <pre>
                         <code class="language-json">
-                        {{ . }}
+                        {{ .Data | printf "%s" }}
                         </code>
                     </pre>
                 </li>
@@ -32,20 +33,18 @@
         </div>
     </div>
     <div class="row">
-        <form method="post" class="col s12" action="/publish">
+        <form method="post" class="col s12" id="publish" action="/publish">
             <h4>Publish message</h4>
             <div class="row">
-                <div class="input-field col s12">
-                    <select name="topic" id="topic">
+                <div class="input-field col s6">
+                    <select name="topic" id="topic" required="required">
                         <option value="" disabled selected>Choose a topic</option>
-                        {{ range $_, $topic := .Config.Topics }}
-                            <option value="{{ $topic.Name }}">{{ $topic.Name }}</option>
-                        {{ end }}
+                    {{ range $_, $topic := .Config.Topics }}
+                        <option value="{{ $topic.Name }}">{{ $topic.Name }}</option>
+                    {{ end }}
                     </select>
                 </div>
-            </div>
-            <div class="row">
-                <div class="input-field col s12">
+                <div class="input-field col s6">
                     <select id="payload-list">
                         <option value="" disabled selected>Choose an existing payload</option>
                     </select>
@@ -53,7 +52,8 @@
             </div>
             <div class="row">
                 <div class="input-field col s12">
-                    <textarea id="payload" name="payload" class="materialize-textarea" placeholder="Enter message here"></textarea>
+                    <textarea id="payload" name="payload" class="materialize-textarea" cols="4"
+                              placeholder="Enter JSON payload here" required="required"></textarea>
                 </div>
             </div>
             <div class="row">
@@ -70,11 +70,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var elems = document.querySelectorAll('select');
-        var instances = M.FormSelect.init(elems, {});
-    });
-
     Prism.plugins.NormalizeWhitespace.setDefaults({
         'remove-trailing': true,
         'remove-indent': true,
@@ -92,27 +87,54 @@
     {{ end }}
 
     var topic = '';
-    jQuery(function($) {
-        $('#topic').on('change keyup', function() {
+    jQuery(function ($) {
+        M.FormSelect.init(document.querySelectorAll('select'), {});
+
+        $('#topic').on('change keyup', function () {
             topic = $(this).val();
             if (!topic in topics) {
                 return;
             }
 
-            //$('#payload-list').find('option[data-dynamic]').remove();
-            topics[topic].forEach(function(payload) {
+            $('#payload-list').find('option').not('[disabled]').remove();
+            topics[topic].forEach(function (payload) {
                 $('#payload-list').append($('<option>', {
                     value: payload.payload,
                     text: payload.name
                 }));
             });
 
-            var elems = document.querySelectorAll('select');
-            var instances = M.FormSelect.init(elems, {});
+            M.FormSelect.init(document.querySelectorAll('select'), {});
         });
 
-        $('#payload-list').on('change keyup', function() {
+        $('#payload-list').on('change keyup', function () {
             $('#payload').val($(this).val());
+        });
+
+        $("#publish").submit(function (e) {
+            e.preventDefault();
+
+            try {
+                JSON.parse($('#payload').val());
+            } catch (e) {
+                M.toast({html: 'Invalid JSON payload'});
+                return;
+            }
+
+            var $form = $(this);
+            var url = $form.attr('action');
+
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: $form.serialize(),
+                success: function (data) {
+                    M.toast({html: 'Message ' + data.id + ' published to topic ' + data.topic});
+                },
+                error: function (data) {
+                    M.toast({html: 'Error: ' + data.responseText});
+                }
+            });
         });
     });
 </script>
