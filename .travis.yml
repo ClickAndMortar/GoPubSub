@@ -3,10 +3,6 @@ services:
 - docker
 go:
 - "1.13"
-before_install:
-- docker build -t clickandmortar/gopubsub .
-- docker run -d -p 127.0.0.1:8080:8080 clickandmortar/gopubsub
-- docker ps -a
 install: go get -t -v
 notifications:
   email: false
