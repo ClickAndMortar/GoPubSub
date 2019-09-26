@@ -35,9 +35,10 @@ var (
 	maxMessages int
 
 	sseServer *sse.Server
-	sseJson   []byte
+	sseJSON   []byte
 )
 
+// The Config struct holds application configuration
 type Config struct {
 	Project string
 
@@ -51,11 +52,13 @@ type Config struct {
 	}
 }
 
+// The Page struct holds page data for rendering
 type Page struct {
 	Config   Config
 	Messages map[string][]pubsub.Message
 }
 
+// The PublishResponse struct holds responses to message publications
 type PublishResponse struct {
 	ID    string `json:"id"`
 	Topic string `json:"topic"`
@@ -72,6 +75,9 @@ func main() {
 
 	configPath := getEnvDefault("GOPUBSUB_CONFIG", "config.yaml")
 	configData, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Fatal(err)
+	}
 	configErr := yaml.Unmarshal([]byte(configData), &config)
 	if configErr != nil {
 		log.Fatal(configErr)
@@ -170,8 +176,8 @@ func pullMessages(ctx context.Context, subscription *pubsub.Subscription, topic 
 			messages[topic.ID()] = messages[topic.ID()][:maxMessages]
 		}
 
-		sseJson, _ = json.Marshal(messages)
-		sseServer.SendMessage("/events/messages", sse.SimpleMessage(string(sseJson)))
+		sseJSON, _ = json.Marshal(messages)
+		sseServer.SendMessage("/events/messages", sse.SimpleMessage(string(sseJSON)))
 	})
 	if err != nil {
 		fmt.Printf("Receive: %v", err)
@@ -203,14 +209,14 @@ func publishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	publishTopic := client.Topic(r.FormValue("topic"))
-	serverId, err := publishTopic.Publish(ctx, msg).Get(ctx)
+	serverID, err := publishTopic.Publish(ctx, msg).Get(ctx)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Could not publish message: %v", err), 500)
 		return
 	}
 
 	response := PublishResponse{
-		ID:    serverId,
+		ID:    serverID,
 		Topic: publishTopic.ID(),
 	}
 
