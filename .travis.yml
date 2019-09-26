@@ -1,0 +1,9 @@
+language: go
+go:
+- "1.11"
+- "1.12"
+- "1.13"
+- master
+install: go get -t -v
+notifications:
+  email: false

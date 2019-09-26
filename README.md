@@ -1,5 +1,7 @@
 # Go Pub/Sub UI
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/ClickAndMortar/GoPubSub)](https://goreportcard.com/report/github.com/ClickAndMortar/GoPubSub)
+
 This tool eases debugging Google Clouds Pub/Sub with a simple UI.
 
 Features include:
