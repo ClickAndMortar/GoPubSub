@@ -54,11 +54,21 @@ Note that all non-existant topic or subscription will be created. If no subscrip
 
 ## Usage
 
-Open http://localhost:8080 after running GoPubSub.
+### Using Docker image
+
+```bash
+docker pull clickandmortar/gopubsub
+docker run -d \
+ -v $(pwd)/config.yaml:/go/src/app/config.yaml \
+ -p 8080:8080 \
+ --name="gopubsub" \
+ -e PUBSUB_EMULATOR_HOST=pubsub:8085 \
+ clickandmortar/gopubsub
+```
 
 ### From binary
 
-See releases page.
+See releases page, download and run binary.
 
 ### With docker-compose
 
@@ -74,11 +84,19 @@ go run main.go
 
 ## Build
 
+### Binaries
+
 ```bash
 make
 ```
 
 Linux and macOS (Darwin) binaries will be available under the `bin/` directory.
+
+### Docker image
+
+```bash
+make docker
+```
 
 ## Improvements
 
