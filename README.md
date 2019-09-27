@@ -28,6 +28,8 @@ Following environment variables may be set:
 
 ### The `config.yaml` file
 
+To get GoPubSub working, you'll need to create `config.yaml` file with your topics and subscriptions info:
+
 ```yaml
 project: test
 topics:
@@ -54,6 +56,32 @@ Note that all non-existant topic or subscription will be created. If no subscrip
 
 ## Usage
 
+### Using binary
+
+#### Pre-built
+
+Download latest release for your OS from the [releases](https://github.com/ClickAndMortar/GoPubSub/releases) page, or run:
+
+```bash
+go get -u github.com/clickandmortar/gopubsub
+```
+
+Then:
+
+```bash
+export GOPUBSUB_CONFIG="/path/to/config.yaml"
+
+# To use local emulator
+export PUBSUB_EMULATOR_HOST=localhost:8085
+
+# To use actual Pub/Sub service
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/application_default_credentials.json"
+
+gopubsub
+```
+
+And open http://localhost:8080.
+
 ### Using Docker image
 
 ```bash
@@ -65,10 +93,6 @@ docker run -d \
  -e PUBSUB_EMULATOR_HOST=pubsub:8085 \
  clickandmortar/gopubsub
 ```
-
-### From binary
-
-See releases page, download and run binary.
 
 ### With docker-compose
 
@@ -103,6 +127,7 @@ make docker
 * [ ] Remove initial AJAX call
 * [ ] Output message attributes
 * [ ] Use Vue.js for form
+* [ ] Fetch available topics list
 * [x] Live update (using SSE)
 * [x] JSON pretty-printing
 * [x] Working message publication
