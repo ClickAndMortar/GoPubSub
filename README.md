@@ -58,8 +58,6 @@ Note that all non-existant topic or subscription will be created. If no subscrip
 
 ### Using binary
 
-#### Pre-built
-
 Download latest release for your OS from the [releases](https://github.com/ClickAndMortar/GoPubSub/releases) page, or run:
 
 ```bash
