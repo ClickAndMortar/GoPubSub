@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/alexandrevicenzi/go-sse"
+	"github.com/gobuffalo/packr"
 	"gopkg.in/yaml.v2"
 	"html/template"
 	"io/ioutil"
@@ -36,6 +37,10 @@ var (
 
 	sseServer *sse.Server
 	sseJSON   []byte
+
+	box packr.Box
+
+	tmpl *template.Template
 )
 
 // The Config struct holds application configuration
@@ -70,6 +75,13 @@ func main() {
 
 	sseServer = sse.NewServer(nil)
 	defer sseServer.Shutdown()
+
+	box = packr.NewBox("./static")
+	htmlTemplate, err := box.FindString("templates/main.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tmpl = template.Must(template.New("t").Parse(htmlTemplate))
 
 	maxMessages, _ = strconv.Atoi(getEnvDefault("GOPUBSUB_MAX_MESSAGES", "10"))
 
@@ -144,7 +156,7 @@ func main() {
 	http.HandleFunc("/messages", messagesHandler)
 	http.Handle("/events/", sseServer)
 
-	fs := http.FileServer(http.Dir("static"))
+	fs := http.FileServer(box)
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	port := getEnvDefault("GOPUBSUB_PORT", "8080")
@@ -224,5 +236,3 @@ func publishHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonResponse)
 }
-
-var tmpl = template.Must(template.ParseFiles("template.html"))
