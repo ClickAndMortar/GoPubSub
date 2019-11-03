@@ -111,7 +111,8 @@
         });
 
         $('#payload-list').on('change keyup', function () {
-            payloadCM.setValue($(this).val());
+            // Stringify for pretty-printing
+            payloadCM.setValue(JSON.stringify(JSON.parse($(this).val()), null, 2));
         });
 
         $("#publish").submit(function (e) {
