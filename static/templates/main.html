@@ -38,7 +38,7 @@
                     <select name="topic" id="topic" required="required">
                         <option value="" disabled selected>Choose a topic</option>
                     {{ range $_, $topic := .Config.Topics }}
-                        <option value="{{ $topic.Name }}">{{ $topic.Name }}</option>
+                        <option value="{{ $topic.ID }}">{{ $topic.Name }} [{{ $topic.Project }}]</option>
                     {{ end }}
                     </select>
                 </div>
@@ -80,9 +80,9 @@
     var topics = {};
 
     {{ range $_, $topic := .Config.Topics }}
-    topics[{{$topic.Name}}] = [];
+    topics[{{$topic.ID}}] = [];
     {{ range $_, $payload := $topic.Payloads }}
-    topics[{{$topic.Name}}].push({"name": {{$payload.Name}}, "payload": {{$payload.Payload}}});
+    topics[{{$topic.ID}}].push({"name": {{$payload.Name}}, "payload": {{$payload.Payload}}});
     {{ end }}
     {{ end }}
 
@@ -146,7 +146,7 @@
             }
         },
         mounted() {
-            this.fetchMessages();
+            //this.fetchMessages();
         },
         updated() {
             Prism.highlightAll(false, () => {});

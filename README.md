@@ -11,6 +11,7 @@ Features include:
 * Publishing messages from UI to configured topics
 * Configurable pre-defined payloads per topic
 * Live update of received messages
+* Multi-projects
 
 ![Screenshot](https://raw.githubusercontent.com/ClickAndMortar/GoPubSub/master/gopubsub.png)
 
@@ -25,19 +26,21 @@ Following environment variables may be set:
 | `GOPUBSUB_MAX_MESSAGES` | Only keep last _n_ messages per topic | `10` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Path to JSON credentials file | _none_ |
 | `PUBSUB_EMULATOR_HOST` | Host of emulator (see below) | _none_ |
+| `GOOGLE_CLOUD_PROJECT` | Default project name | `default-project` |
 
 ### The `config.yaml` file
 
 To get GoPubSub working, you'll need to create `config.yaml` file with your topics and subscriptions info:
 
 ```yaml
-project: test
 topics:
   -
     name: my-topic
+    project: my-gcp-project
     subscription: my-subscription
   -
     name: my-other-topic
+    project: other-gcp-project
     subscription: my-other-subscription
     payloads:
       -
@@ -126,6 +129,7 @@ make docker
 * [ ] Output message attributes
 * [ ] Use Vue.js for form
 * [ ] Fetch available topics list
+* [x] Multi-project compatibility
 * [x] Live update (using SSE)
 * [x] JSON pretty-printing
 * [x] Working message publication

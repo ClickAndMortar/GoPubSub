@@ -20,12 +20,14 @@ import (
 )
 
 var (
-	client *pubsub.Client
+	clients map[string]*pubsub.Client
+	client  *pubsub.Client
 
 	messagesMu sync.Mutex
 	messages   map[string][]pubsub.Message
 
 	topicName        string
+	topicProject     string
 	subscriptionName string
 
 	page Page
@@ -45,10 +47,10 @@ var (
 
 // The Config struct holds application configuration
 type Config struct {
-	Project string
-
 	Topics []struct {
+		ID           string
 		Name         string
+		Project      string
 		Subscription string
 		Payloads     []struct {
 			Name    string
@@ -95,14 +97,9 @@ func main() {
 		log.Fatal(configErr)
 	}
 
-	page.Config = config
-
 	ctx := context.Background()
 
-	client, err = pubsub.NewClient(ctx, config.Project)
-	if err != nil {
-		log.Fatal(err)
-	}
+	clients = make(map[string]*pubsub.Client)
 
 	messages = make(map[string][]pubsub.Message)
 	page.Messages = messages
@@ -110,18 +107,30 @@ func main() {
 	topics = make(map[string]*pubsub.Topic)
 	subscriptions = make(map[string]*pubsub.Subscription)
 
-	// Create the topic if it doesn't exist.
-	for _, topicConfig := range config.Topics {
-		topicName = topicConfig.Name
-		topics[topicName] = client.Topic(topicName)
+	for i, topicConfig := range config.Topics {
+		client, err = pubsub.NewClient(ctx, topicConfig.Project)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		exists, err := topics[topicName].Exists(ctx)
+		topicName = topicConfig.Name
+		topicProject = topicConfig.Project
+		if topicProject == "" {
+			defaultProject := getEnvDefault("GOOGLE_CLOUD_PROJECT", "default-project")
+			log.Fatal(fmt.Sprintf("Missing project for topic [%s], using default [%s]", topicName, defaultProject))
+		}
+		topicConfig.ID = fmt.Sprintf("%s/%s", topicProject, topicName)
+		topicID := topicConfig.ID
+		clients[topicID] = client
+		topics[topicID] = clients[topicID].Topic(topicName)
+
+		exists, err := topics[topicID].Exists(ctx)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if !exists {
-			log.Printf("Topic %v doesn't exist - creating it", topicName)
-			_, err = client.CreateTopic(ctx, topicName)
+			log.Printf("Topic %v (project %s) doesn't exist - creating it", topicName, topicProject)
+			_, err = clients[topicID].CreateTopic(ctx, topicName)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -129,10 +138,10 @@ func main() {
 
 		subscriptionName = topicConfig.Subscription
 		if subscriptionName == "" {
-			subscriptionName = fmt.Sprintf("sub-%s", topicName)
-			log.Printf("No subscription name given for topic %s, using %s", topicName, subscriptionName)
+			subscriptionName = fmt.Sprintf("sub-%s-%s", topicProject, topicName)
+			log.Printf("No subscription name given for topic %s (project %s), using %s", topicName, topicProject, subscriptionName)
 		}
-		subscriptions[subscriptionName] = client.Subscription(subscriptionName)
+		subscriptions[subscriptionName] = clients[topicID].Subscription(subscriptionName)
 		subExists, err := subscriptions[subscriptionName].Exists(ctx)
 		if err != nil {
 			log.Fatal(err)
@@ -140,16 +149,20 @@ func main() {
 		if !subExists {
 			log.Printf("Subscription %v doesn't exist - creating it", subscriptionName)
 			subConfig := pubsub.SubscriptionConfig{
-				Topic: topics[topicName],
+				Topic: topics[topicID],
 			}
-			_, err = client.CreateSubscription(ctx, subscriptionName, subConfig)
+			_, err = clients[topicID].CreateSubscription(ctx, subscriptionName, subConfig)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
 
-		go pullMessages(ctx, subscriptions[subscriptionName], topics[topicName])
+		config.Topics[i] = topicConfig
+
+		go pullMessages(ctx, subscriptions[subscriptionName], topics[topicID], topicProject)
 	}
+
+	page.Config = config
 
 	http.HandleFunc("/", listHandler)
 	http.HandleFunc("/publish", publishHandler)
@@ -175,17 +188,19 @@ func getEnvDefault(name string, defaultValue string) string {
 	return variable
 }
 
-func pullMessages(ctx context.Context, subscription *pubsub.Subscription, topic *pubsub.Topic) {
+func pullMessages(ctx context.Context, subscription *pubsub.Subscription, topic *pubsub.Topic, project string) {
 	cctx, _ := context.WithCancel(ctx)
 	err := subscription.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
 		msg.Ack()
-		log.Printf("Topic [%s], subscription [%s], got message: %q\n", topic.ID(), subscription.ID(), string(msg.Data))
-		messages[topic.ID()] = append([]pubsub.Message{*msg}, messages[topic.ID()]...)
+		log.Printf("Project [%s], topic [%s], subscription [%s], got message: %q\n", project, topic.ID(), subscription.ID(), string(msg.Data))
+
+		topicID := fmt.Sprintf("%s/%s", project, topic.ID())
+		messages[topicID] = append([]pubsub.Message{*msg}, messages[topicID]...)
 
 		messagesMu.Lock()
 		defer messagesMu.Unlock()
-		if len(messages[topic.ID()]) > maxMessages {
-			messages[topic.ID()] = messages[topic.ID()][:maxMessages]
+		if len(messages[topicID]) > maxMessages {
+			messages[topicID] = messages[topicID][:maxMessages]
 		}
 
 		sseJSON, _ = json.Marshal(messages)
@@ -220,7 +235,7 @@ func publishHandler(w http.ResponseWriter, r *http.Request) {
 		Data: []byte(strings.TrimSpace(r.FormValue("payload"))),
 	}
 
-	publishTopic := client.Topic(r.FormValue("topic"))
+	publishTopic := topics[r.FormValue("topic")]
 	serverID, err := publishTopic.Publish(ctx, msg).Get(ctx)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Could not publish message: %v", err), 500)

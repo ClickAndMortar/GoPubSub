@@ -1,10 +1,11 @@
-project: test
 topics:
   -
     name: my-topic
+    project: my-gcp-project
     subscription: my-subscription
   -
     name: my-other-topic
+    project: other-gcp-project
     subscription: my-other-subscription
     payloads:
       -
