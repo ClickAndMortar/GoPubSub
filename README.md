@@ -21,7 +21,7 @@ Following environment variables may be set:
 
 | Variable | Usage | Default value |
 |---|---|---|
-| `GOPUBSUB_CONFIG` | Config file path | `/go/src/app/config.yaml` |
+| `GOPUBSUB_CONFIG` | Config file path | `config.yaml` (within `/go/src/app/` in Docker image) |
 | `GOPUBSUB_PORT` | Listening HTTP port | `8080` |
 | `GOPUBSUB_MAX_MESSAGES` | Only keep last _n_ messages per topic | `10` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Path to JSON credentials file | _none_ |
