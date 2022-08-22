@@ -19,11 +19,22 @@
                     <li class="collection-header"><h5>{{ "{{ topic }}" }}</h5></li>
                     <li v-for="message in messages" class="collection-item" :key="message.ID">
                         <span style="font-size: 10px; color: #333333;">{{ "{{ message.PublishTime }}" }} (ID {{ "{{ message.ID }}" }}):</span>
-                        <pre>
-                        <code class="language-json">
-                        {{ "{{ atob(message.Data) }}" }}
-                        </code>
-                    </pre>
+                        <div v-if="message.Data">
+                            <span style="font-size: 8px; color: #333333;">message.Data:</span>
+                            <pre>
+                                <code class="language-json">
+                                    {{ "{{ atob(message.Data) }}" }}
+                                </code>
+                            </pre>
+                        </div>
+                        <div v-if="message.Attributes">
+                            <span style="font-size: 8px; color: #333333;">message.Attributes:</span>
+                            <pre>
+                                <code class="language-json">
+                                    {{ "{{ message.Attributes }}" }}
+                                </code>
+                            </pre>
+                        </div>
                     </li>
                 </ul>
                 <p v-if="Object.keys(topics).length == 0">No messages yet 📭</p>
