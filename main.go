@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/alexandrevicenzi/go-sse"
-	"github.com/gobuffalo/packr"
-	"gopkg.in/yaml.v2"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -15,6 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/alexandrevicenzi/go-sse"
+	"github.com/gobuffalo/packr"
+	"gopkg.in/yaml.v2"
 
 	"cloud.google.com/go/pubsub"
 )
@@ -192,7 +193,7 @@ func pullMessages(ctx context.Context, subscription *pubsub.Subscription, topic 
 	cctx, _ := context.WithCancel(ctx)
 	err := subscription.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
 		msg.Ack()
-		log.Printf("Project [%s], topic [%s], subscription [%s], got message: %q\n", project, topic.ID(), subscription.ID(), string(msg.Data))
+		log.Printf("Project [%s], topic [%s], subscription [%s], got message: %q, with attributes: %v\n", project, topic.ID(), subscription.ID(), string(msg.Data), msg.Attributes)
 
 		topicID := fmt.Sprintf("%s/%s", project, topic.ID())
 		messages[topicID] = append([]pubsub.Message{*msg}, messages[topicID]...)
